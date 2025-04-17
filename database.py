@@ -230,6 +230,103 @@ def add_occupancy_record(lot_id, occupied_spaces, area_id=None, timestamp=None):
     finally:
         session.close()
 
+def add_parking_lot(name, total_spaces, latitude=None, longitude=None):
+    """
+    Add a new parking lot to the database.
+    
+    Parameters:
+    - name: Name of the parking lot
+    - total_spaces: Total number of parking spaces
+    - latitude: Optional latitude coordinate
+    - longitude: Optional longitude coordinate
+    
+    Returns:
+    - The created parking lot
+    """
+    session = Session()
+    try:
+        # Create new parking lot
+        lot = ParkingLot(
+            name=name,
+            total_spaces=total_spaces,
+            latitude=latitude,
+            longitude=longitude
+        )
+        
+        # Add to database
+        session.add(lot)
+        session.commit()
+        
+        return lot
+    finally:
+        session.close()
+
+def add_parking_area(name, total_spaces, lot_id):
+    """
+    Add a new parking area to the database.
+    
+    Parameters:
+    - name: Name of the parking area
+    - total_spaces: Total number of parking spaces
+    - lot_id: ID of the parking lot this area belongs to
+    
+    Returns:
+    - The created parking area
+    """
+    session = Session()
+    try:
+        # Create new parking area
+        area = ParkingArea(
+            name=name,
+            total_spaces=total_spaces,
+            lot_id=lot_id
+        )
+        
+        # Add to database
+        session.add(area)
+        session.commit()
+        
+        return area
+    finally:
+        session.close()
+
+def get_database_stats():
+    """
+    Get statistics about the database.
+    
+    Returns:
+    - Dictionary with database statistics
+    """
+    session = Session()
+    try:
+        stats = {}
+        
+        # Count parking lots
+        stats['total_lots'] = session.query(ParkingLot).count()
+        
+        # Count parking areas
+        stats['total_areas'] = session.query(ParkingArea).count()
+        
+        # Count occupancy records
+        stats['total_records'] = session.query(OccupancyRecord).count()
+        
+        # Get earliest and latest timestamps
+        earliest_record = session.query(OccupancyRecord).order_by(OccupancyRecord.timestamp).first()
+        latest_record = session.query(OccupancyRecord).order_by(OccupancyRecord.timestamp.desc()).first()
+        
+        if earliest_record and latest_record:
+            stats['earliest_timestamp'] = earliest_record.timestamp
+            stats['latest_timestamp'] = latest_record.timestamp
+            stats['days_of_data'] = (latest_record.timestamp - earliest_record.timestamp).days
+        
+        # Count total parking spaces
+        total_spaces = session.query(ParkingLot.total_spaces).all()
+        stats['total_spaces'] = sum([spaces[0] for spaces in total_spaces])
+        
+        return stats
+    finally:
+        session.close()
+
 def seed_database():
     """
     Seed the database with initial data if it's empty.

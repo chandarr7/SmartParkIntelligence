@@ -37,7 +37,7 @@ st.sidebar.markdown("---")
 # Sidebar navigation
 page = st.sidebar.radio(
     "Navigation",
-    ["Dashboard", "Prediction", "Historical Data", "About"],
+    ["Dashboard", "Prediction", "Historical Data", "Management", "About"],
 )
 
 # Initialize session state for data persistence
@@ -443,6 +443,140 @@ elif page == "Historical Data":
             
             st.plotly_chart(fig, use_container_width=True)
 
+# Management Page
+elif page == "Management":
+    st.title("Parking System Management")
+    st.markdown("Add and manage parking lots, areas, and view database statistics")
+    
+    # Create tabs for different management functions
+    tabs = st.tabs(["Add Parking Lot", "Add Parking Area", "Database Statistics"])
+    
+    # Add Parking Lot tab
+    with tabs[0]:
+        st.subheader("Add New Parking Lot")
+        st.markdown("Create a new parking facility in the system")
+        
+        # Form for adding a new parking lot
+        with st.form("add_lot_form"):
+            lot_name = st.text_input("Parking Lot Name", placeholder="e.g., Downtown Parking Complex")
+            total_spaces = st.number_input("Total Parking Spaces", min_value=1, value=100)
+            col1, col2 = st.columns(2)
+            with col1:
+                latitude = st.number_input("Latitude (optional)", value=37.7749)
+            with col2:
+                longitude = st.number_input("Longitude (optional)", value=-122.4194)
+            
+            submit_button = st.form_submit_button("Add Parking Lot")
+            
+            if submit_button:
+                if lot_name.strip() == "":
+                    st.error("Please enter a name for the parking lot")
+                else:
+                    # Add the new parking lot to the database
+                    new_lot = db.add_parking_lot(lot_name, total_spaces, latitude, longitude)
+                    st.success(f"Parking lot '{lot_name}' added successfully with ID: {new_lot.id}")
+        
+        # Display existing parking lots
+        st.subheader("Existing Parking Lots")
+        lots = db.get_parking_lots()
+        if lots:
+            lot_data = []
+            for lot in lots:
+                lot_data.append({
+                    "ID": lot.id,
+                    "Name": lot.name,
+                    "Total Spaces": lot.total_spaces,
+                    "Location": f"({lot.latitude}, {lot.longitude})"
+                })
+            st.dataframe(lot_data)
+        else:
+            st.info("No parking lots found in the database")
+    
+    # Add Parking Area tab
+    with tabs[1]:
+        st.subheader("Add New Parking Area")
+        st.markdown("Add a specific area/section to an existing parking lot")
+        
+        # Get parking lots for selection
+        lots = db.get_parking_lots()
+        if not lots:
+            st.warning("No parking lots available. Please add a parking lot first.")
+        else:
+            # Form for adding a new parking area
+            with st.form("add_area_form"):
+                lot_options = {lot.name: lot.id for lot in lots}
+                selected_lot = st.selectbox("Select Parking Lot", options=list(lot_options.keys()))
+                area_name = st.text_input("Area Name", placeholder="e.g., Level 1 - North")
+                area_spaces = st.number_input("Number of Spaces in Area", min_value=1, value=50)
+                
+                submit_button = st.form_submit_button("Add Area")
+                
+                if submit_button:
+                    if area_name.strip() == "":
+                        st.error("Please enter a name for the parking area")
+                    else:
+                        # Add the new parking area to the database
+                        lot_id = lot_options[selected_lot]
+                        new_area = db.add_parking_area(area_name, area_spaces, lot_id)
+                        st.success(f"Parking area '{area_name}' added successfully to '{selected_lot}'")
+            
+            # Display existing areas for each lot
+            for lot in lots:
+                st.subheader(f"Areas in {lot.name}")
+                areas = db.get_parking_areas(lot.id)
+                if areas:
+                    area_data = []
+                    for area in areas:
+                        area_data.append({
+                            "ID": area.id,
+                            "Name": area.name,
+                            "Spaces": area.total_spaces
+                        })
+                    st.dataframe(area_data)
+                else:
+                    st.info(f"No areas defined for {lot.name}")
+    
+    # Database Statistics tab
+    with tabs[2]:
+        st.subheader("Database Statistics")
+        st.markdown("Overview of the parking system database")
+        
+        # Get database statistics
+        stats = db.get_database_stats()
+        
+        # Display statistics in metrics
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Parking Lots", stats.get('total_lots', 0))
+        with col2:
+            st.metric("Total Parking Areas", stats.get('total_areas', 0))
+        with col3:
+            st.metric("Total Parking Spaces", stats.get('total_spaces', 0))
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Occupancy Records", f"{stats.get('total_records', 0):,}")
+        with col2:
+            if 'days_of_data' in stats:
+                st.metric("Days of Historical Data", stats['days_of_data'])
+        
+        # Display time range of data
+        if 'earliest_timestamp' in stats and 'latest_timestamp' in stats:
+            st.subheader("Data Time Range")
+            st.markdown(f"**Earliest record:** {stats['earliest_timestamp']}")
+            st.markdown(f"**Latest record:** {stats['latest_timestamp']}")
+        
+        # Option to reset the database (with confirmation)
+        st.subheader("Database Management")
+        if st.button("Reinitialize Database"):
+            confirm = st.checkbox("I understand this will reset all data")
+            if confirm:
+                # Re-initialize the database
+                db.init_db()
+                db.seed_database()
+                st.success("Database reinitialized successfully")
+                st.rerun()
+
 # About Page
 elif page == "About":
     st.title("About Smart Parking System")
@@ -462,7 +596,9 @@ elif page == "About":
     ### Technology Stack
     
     - **Frontend**: Streamlit for interactive web interface
+    - **Database**: PostgreSQL for data storage and retrieval
     - **Data Processing**: Pandas and NumPy for data manipulation
+    - **ORM**: SQLAlchemy for database interactions
     - **Machine Learning**: Scikit-learn for predictive models
     - **Visualization**: Plotly and Folium for interactive charts and maps
     
@@ -475,7 +611,7 @@ elif page == "About":
     - Ticket systems and parking gates
     - Weather APIs and event calendars for improved predictions
     
-    For this demonstration, we use simulated data that mimics real-world parking patterns.
+    For this demonstration, we use a PostgreSQL database with simulated data that mimics real-world parking patterns.
     
     ### Future Enhancements
     
