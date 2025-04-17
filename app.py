@@ -10,10 +10,15 @@ from streamlit_folium import folium_static
 import base64
 
 # Import custom modules
-from data_generator import generate_parking_data, get_current_occupancy
+from data_generator import generate_parking_data
 from prediction_model import train_prediction_model, predict_parking_availability
 from visualization import plot_occupancy_trend, plot_hourly_average, create_parking_map
 from utils import load_svg, calculate_statistics
+import database as db
+
+# Initialize database
+db.init_db()
+db.seed_database()
 
 # Set page configuration
 st.set_page_config(
@@ -37,17 +42,8 @@ page = st.sidebar.radio(
 
 # Initialize session state for data persistence
 if 'historical_data' not in st.session_state:
-    # Generate initial historical data for the past 7 days
-    current_time = datetime.now()
-    days_back = 7
-    start_time = current_time - timedelta(days=days_back)
-    
-    # Generate data for past 7 days with 15-minute intervals
-    st.session_state.historical_data = generate_parking_data(
-        start_time, 
-        current_time,
-        interval_minutes=15
-    )
+    # Get historical data from database
+    st.session_state.historical_data = db.get_historical_data(days=7)
     
     # Train the prediction model with historical data
     st.session_state.model = train_prediction_model(st.session_state.historical_data)
@@ -56,30 +52,46 @@ if 'last_update' not in st.session_state:
     st.session_state.last_update = datetime.now()
     
 if 'real_time_data' not in st.session_state:
-    # Initialize real-time data
-    st.session_state.real_time_data = get_current_occupancy()
+    # Initialize real-time data from database
+    st.session_state.real_time_data = db.get_current_occupancy()
 
 # Function to update real-time data
 def update_data():
     current_time = datetime.now()
     
-    # Update real-time data
-    st.session_state.real_time_data = get_current_occupancy()
+    # Update real-time data from database
+    st.session_state.real_time_data = db.get_current_occupancy()
     
     # Add new data to historical dataset every 15 minutes
     time_diff = current_time - st.session_state.last_update
     if time_diff.total_seconds() >= 900:  # 15 minutes in seconds
-        new_data = pd.DataFrame({
-            'timestamp': [current_time],
-            'occupancy': [st.session_state.real_time_data['total_occupied']],
-            'total_spaces': [st.session_state.real_time_data['total_spaces']],
-            'day_of_week': [current_time.weekday()],
-            'hour': [current_time.hour],
-            'minute': [current_time.minute]
-        })
-        
-        st.session_state.historical_data = pd.concat([st.session_state.historical_data, new_data], ignore_index=True)
+        # Get the most recent data from the database
+        st.session_state.historical_data = db.get_historical_data(days=7)
         st.session_state.last_update = current_time
+        
+        # Get main parking lot
+        lots = db.get_parking_lots()
+        if lots:
+            main_lot = lots[0]
+            
+            # Add a new occupancy record to the database
+            db.add_occupancy_record(
+                lot_id=main_lot.id,
+                occupied_spaces=st.session_state.real_time_data['total_occupied'],
+                timestamp=current_time
+            )
+            
+            # Add records for each area
+            areas = db.get_parking_areas(main_lot.id)
+            for area in areas:
+                area_data = st.session_state.real_time_data['areas'].get(area.name)
+                if area_data:
+                    db.add_occupancy_record(
+                        lot_id=main_lot.id,
+                        area_id=area.id,
+                        occupied_spaces=area_data['occupied'],
+                        timestamp=current_time
+                    )
         
         # Retrain model with updated data
         st.session_state.model = train_prediction_model(st.session_state.historical_data)
