@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import plotly.express as px
 import plotly.graph_objects as go
 import folium
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
 import base64
 
 # Import custom modules
@@ -155,7 +155,7 @@ if page == "Dashboard":
     with col1:
         st.subheader("Parking Map")
         map_data = create_parking_map(st.session_state.real_time_data)
-        folium_static(map_data, width=700)
+        st_folium(map_data, width=700, returned_objects=[])
     
     with col2:
         st.subheader("Current Status")
