@@ -339,22 +339,64 @@ def seed_database():
         if existing_lots > 0:
             return
         
-        # Create a main parking lot
-        main_lot = ParkingLot(
-            name="Downtown Parking Complex",
-            total_spaces=200,
-            latitude=37.7749,
-            longitude=-122.4194
+        # Create USF parking lots
+        collins_garage = ParkingLot(
+            name="Collins Garage",
+            total_spaces=1800,
+            latitude=28.0587,
+            longitude=-82.4139
         )
-        session.add(main_lot)
-        session.flush()  # To get the ID
+        session.add(collins_garage)
         
-        # Create parking areas
+        beard_garage = ParkingLot(
+            name="Beard Garage",
+            total_spaces=1500,
+            latitude=28.0650,
+            longitude=-82.4144
+        )
+        session.add(beard_garage)
+        
+        laurel_garage = ParkingLot(
+            name="Laurel Garage",
+            total_spaces=1700,
+            latitude=28.0622,
+            longitude=-82.4099
+        )
+        session.add(laurel_garage)
+        
+        crescent_garage = ParkingLot(
+            name="Crescent Hill Garage",
+            total_spaces=1600,
+            latitude=28.0643,
+            longitude=-82.4119
+        )
+        session.add(crescent_garage)
+        
+        session.flush()  # To get the IDs
+        
+        # Create parking areas (by permit type)
         areas = [
-            ParkingArea(name="Area A - Main", total_spaces=80, lot_id=main_lot.id),
-            ParkingArea(name="Area B - North", total_spaces=60, lot_id=main_lot.id),
-            ParkingArea(name="Area C - South", total_spaces=40, lot_id=main_lot.id),
-            ParkingArea(name="Area D - VIP", total_spaces=20, lot_id=main_lot.id)
+            # Collins Garage areas
+            ParkingArea(name="Gold Zone", total_spaces=200, lot_id=collins_garage.id),
+            ParkingArea(name="Green Zone", total_spaces=900, lot_id=collins_garage.id),
+            ParkingArea(name="Resident Zone", total_spaces=500, lot_id=collins_garage.id),
+            ParkingArea(name="Non-Resident Zone", total_spaces=200, lot_id=collins_garage.id),
+            
+            # Beard Garage areas
+            ParkingArea(name="Staff Zone", total_spaces=400, lot_id=beard_garage.id),
+            ParkingArea(name="Student Zone", total_spaces=800, lot_id=beard_garage.id),
+            ParkingArea(name="Visitor Zone", total_spaces=200, lot_id=beard_garage.id),
+            ParkingArea(name="Reserved Zone", total_spaces=100, lot_id=beard_garage.id),
+            
+            # Laurel Garage areas
+            ParkingArea(name="Gold Zone", total_spaces=300, lot_id=laurel_garage.id),
+            ParkingArea(name="Green Zone", total_spaces=1000, lot_id=laurel_garage.id),
+            ParkingArea(name="Visitor Zone", total_spaces=400, lot_id=laurel_garage.id),
+            
+            # Crescent Hill Garage areas
+            ParkingArea(name="Staff Zone", total_spaces=500, lot_id=crescent_garage.id),
+            ParkingArea(name="Student Zone", total_spaces=900, lot_id=crescent_garage.id),
+            ParkingArea(name="Visitor Zone", total_spaces=200, lot_id=crescent_garage.id)
         ]
         session.add_all(areas)
         session.commit()
@@ -370,64 +412,75 @@ def seed_database():
         # Add historical data to database
         areas_dict = {area.name: area for area in areas}
         
+        # Get all parking lots
+        lots = [collins_garage, beard_garage, laurel_garage, crescent_garage]
+        
         for _, row in historical_data.iterrows():
-            # Distribute occupancy across areas based on their size
-            area_a_spaces = int(row['occupancy'] * 0.4)  # 40% in Area A
-            area_b_spaces = int(row['occupancy'] * 0.3)  # 30% in Area B
-            area_c_spaces = int(row['occupancy'] * 0.2)  # 20% in Area C
-            area_d_spaces = int(row['occupancy'] * 0.1)  # 10% in Area D (VIP)
-            
-            # Add records for each area
-            area_records = [
-                OccupancyRecord(
+            # Process each lot with its areas
+            for lot in lots:
+                # Get areas for this lot
+                lot_areas = [area for area in areas if area.lot_id == lot.id]
+                
+                # Calculate total capacity for this lot
+                total_capacity = sum(area.total_spaces for area in lot_areas)
+                
+                # Calculate occupancy rate (adjust by time of day, day of week)
+                # Simulate busier hours during weekdays, especially morning and afternoon
+                base_rate = 0.4  # Base occupancy rate
+                
+                # Higher traffic during day hours on weekdays
+                if 0 <= row['day_of_week'] <= 4:  # Weekday
+                    if 8 <= row['hour'] <= 15:  # Morning to afternoon classes
+                        base_rate = 0.75
+                    elif 16 <= row['hour'] <= 18:  # Evening classes
+                        base_rate = 0.60
+                else:  # Weekend
+                    base_rate = 0.25
+                    
+                # Random variation
+                import random
+                variation = random.uniform(-0.1, 0.1)
+                occupancy_rate = min(0.95, max(0.1, base_rate + variation))
+                
+                # Calculate occupancy for this lot
+                lot_occupancy = int(lot.total_spaces * occupancy_rate)
+                
+                # Create record for the lot
+                lot_record = OccupancyRecord(
                     timestamp=row['timestamp'],
-                    occupied_spaces=area_a_spaces,
-                    lot_id=main_lot.id,
-                    area_id=areas_dict["Area A - Main"].id,
-                    day_of_week=row['day_of_week'],
-                    hour=row['hour'],
-                    minute=row['minute']
-                ),
-                OccupancyRecord(
-                    timestamp=row['timestamp'],
-                    occupied_spaces=area_b_spaces,
-                    lot_id=main_lot.id,
-                    area_id=areas_dict["Area B - North"].id,
-                    day_of_week=row['day_of_week'],
-                    hour=row['hour'],
-                    minute=row['minute']
-                ),
-                OccupancyRecord(
-                    timestamp=row['timestamp'],
-                    occupied_spaces=area_c_spaces,
-                    lot_id=main_lot.id,
-                    area_id=areas_dict["Area C - South"].id,
-                    day_of_week=row['day_of_week'],
-                    hour=row['hour'],
-                    minute=row['minute']
-                ),
-                OccupancyRecord(
-                    timestamp=row['timestamp'],
-                    occupied_spaces=area_d_spaces,
-                    lot_id=main_lot.id,
-                    area_id=areas_dict["Area D - VIP"].id,
+                    occupied_spaces=lot_occupancy,
+                    lot_id=lot.id,
                     day_of_week=row['day_of_week'],
                     hour=row['hour'],
                     minute=row['minute']
                 )
-            ]
-            session.add_all(area_records)
-            
-            # Also add a record for the overall lot
-            lot_record = OccupancyRecord(
-                timestamp=row['timestamp'],
-                occupied_spaces=row['occupancy'],
-                lot_id=main_lot.id,
-                day_of_week=row['day_of_week'],
-                hour=row['hour'],
-                minute=row['minute']
-            )
-            session.add(lot_record)
+                session.add(lot_record)
+                
+                # Create records for each area in this lot
+                remaining_occupancy = lot_occupancy
+                for i, area in enumerate(lot_areas):
+                    # Last area gets any remaining spots to ensure total matches
+                    if i == len(lot_areas) - 1:
+                        area_occupancy = remaining_occupancy
+                    else:
+                        # Distribute proportionally to area size
+                        area_ratio = area.total_spaces / total_capacity
+                        area_occupancy = int(lot_occupancy * area_ratio)
+                        remaining_occupancy -= area_occupancy
+                    
+                    # Ensure we don't exceed the area's capacity
+                    area_occupancy = min(area_occupancy, area.total_spaces)
+                    
+                    area_record = OccupancyRecord(
+                        timestamp=row['timestamp'],
+                        occupied_spaces=area_occupancy,
+                        lot_id=lot.id,
+                        area_id=area.id,
+                        day_of_week=row['day_of_week'],
+                        hour=row['hour'],
+                        minute=row['minute']
+                    )
+                    session.add(area_record)
         
         session.commit()
     except Exception as e:

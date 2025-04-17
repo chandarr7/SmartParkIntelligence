@@ -22,17 +22,38 @@ db.seed_database()
 
 # Set page configuration
 st.set_page_config(
-    page_title="Smart Parking System",
+    page_title="USF Parking System",
     page_icon="🅿️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # Create a sidebar
-st.sidebar.title("Smart Parking System")
+st.sidebar.title("USF Parking System")
+# Display USF colors
+st.sidebar.markdown("""
+<style>
+    .sidebar .sidebar-content {
+        background-color: #006747; /* USF Green */
+        color: #CFC493; /* USF Gold */
+    }
+    .stButton button {
+        background-color: #006747;
+        color: white;
+    }
+    h1, h2, h3 {
+        color: #006747;
+    }
+    .stProgress > div > div {
+        background-color: #006747;
+    }
+</style>
+""", unsafe_allow_html=True)
 parking_icon = load_svg("assets/parking_icon.svg")
 st.sidebar.markdown(parking_icon, unsafe_allow_html=True)
 st.sidebar.markdown("---")
+st.sidebar.markdown("**University of South Florida**")
+st.sidebar.markdown("Tampa Campus Parking")
 
 # Sidebar navigation
 page = st.sidebar.radio(
@@ -98,8 +119,8 @@ def update_data():
 
 # Dashboard Page
 if page == "Dashboard":
-    st.title("Parking Availability Dashboard")
-    st.markdown("Real-time monitoring and visualization of parking spaces")
+    st.title("USF Parking Availability Dashboard")
+    st.markdown("Real-time monitoring and visualization of USF Tampa campus parking garages")
     
     # Update data
     update_data()
@@ -579,12 +600,19 @@ elif page == "Management":
 
 # About Page
 elif page == "About":
-    st.title("About Smart Parking System")
+    st.title("About USF Parking System")
+    
+    # Display USF logo
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <img src="https://www.usf.edu/identity/images/logos-and-brand-assets/usf-logo-color-rgb.png" width="400">
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown("""
     ## Overview
     
-    The Smart Parking System is an AI-powered application that provides real-time monitoring and prediction of parking availability. The system aims to reduce congestion, improve user experience, and provide valuable insights for parking management.
+    The USF Parking System is an AI-powered application that provides real-time monitoring and prediction of parking availability across the University of South Florida's Tampa campus. The system aims to help students, faculty, staff, and visitors find parking more efficiently, reduce congestion, and improve the overall parking experience at USF.
     
     ### Key Features
     
