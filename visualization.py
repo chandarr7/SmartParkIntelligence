@@ -159,35 +159,120 @@ def plot_hourly_average(historical_data):
     
     return fig
 
-def create_parking_map(occupancy_data, center_lat=37.7749, center_lng=-122.4194):
+def create_parking_map(occupancy_data, center_lat=28.0609, center_lng=-82.4131):
     """
-    Create an interactive map showing parking areas and their occupancy.
+    Create an interactive map showing USF parking garages and their occupancy.
     
     Parameters:
     - occupancy_data: Dictionary with current occupancy data
-    - center_lat: Center latitude for the map
-    - center_lng: Center longitude for the map
+    - center_lat: Center latitude for the map (default: USF Tampa campus)
+    - center_lng: Center longitude for the map (default: USF Tampa campus)
     
     Returns:
     - Folium map object
     """
-    # Create base map
-    m = folium.Map(location=[center_lat, center_lng], zoom_start=16)
+    # Create base map centered on USF Tampa campus
+    m = folium.Map(location=[center_lat, center_lng], zoom_start=15)
     
-    # Define parking areas with simulated coordinates
+    # Add a satellite layer as an option
+    folium.TileLayer(
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri World Imagery',
+        name='Satellite'
+    ).add_to(m)
+    
+    # Add layer control
+    folium.LayerControl().add_to(m)
+    
+    # Add USF marker at the center
+    folium.Marker(
+        [center_lat, center_lng],
+        popup="USF Tampa Campus",
+        icon=folium.Icon(color='green', icon='graduation-cap', prefix='fa')
+    ).add_to(m)
+    
+    # Define parking areas with USF garage coordinates
     areas = occupancy_data['areas']
     
-    # Slightly adjust coordinates for each area to spread them out
+    # Create garage-specific markers first
+    garages = [
+        {
+            "name": "Collins Garage",
+            "location": [28.0587, -82.4139],
+            "total_spaces": 1800
+        },
+        {
+            "name": "Beard Garage",
+            "location": [28.0650, -82.4144],
+            "total_spaces": 1500
+        },
+        {
+            "name": "Laurel Garage",
+            "location": [28.0622, -82.4099],
+            "total_spaces": 1700
+        },
+        {
+            "name": "Crescent Hill Garage",
+            "location": [28.0643, -82.4119],
+            "total_spaces": 1600
+        }
+    ]
+    
+    # Add markers for each garage
+    for garage in garages:
+        folium.Marker(
+            location=garage["location"],
+            popup=f"<b>{garage['name']}</b><br>Total Spaces: {garage['total_spaces']}",
+            icon=folium.Icon(color='blue', icon='building', prefix='fa')
+        ).add_to(m)
+    
+    # USF parking zone coordinates - use more specific names to avoid duplicate keys
     coordinates = {
-        "Area A - Main": (center_lat + 0.002, center_lng + 0.002),
-        "Area B - North": (center_lat + 0.002, center_lng - 0.002),
-        "Area C - South": (center_lat - 0.002, center_lng + 0.002),
-        "Area D - VIP": (center_lat - 0.002, center_lng - 0.002)
+        # Collins Garage areas
+        "Collins - Gold Zone": (28.0587, -82.4139),
+        "Collins - Green Zone": (28.0582, -82.4134),
+        "Collins - Resident Zone": (28.0592, -82.4144),
+        "Collins - Non-Resident Zone": (28.0592, -82.4134),
+        
+        # Beard Garage areas
+        "Beard - Staff Zone": (28.0650, -82.4149),
+        "Beard - Student Zone": (28.0650, -82.4139),
+        "Beard - Visitor Zone": (28.0645, -82.4144),
+        "Beard - Reserved Zone": (28.0645, -82.4139),
+        
+        # Laurel Garage areas
+        "Laurel - Gold Zone": (28.0622, -82.4104),
+        "Laurel - Green Zone": (28.0622, -82.4094),
+        "Laurel - Visitor Zone": (28.0627, -82.4099),
+        
+        # Crescent Hill Garage areas
+        "Crescent - Staff Zone": (28.0643, -82.4119),
+        "Crescent - Student Zone": (28.0643, -82.4114),
+        "Crescent - Visitor Zone": (28.0638, -82.4119)
+    }
+    
+    # If we need to map old area names to the new ones
+    area_name_mapping = {
+        "Gold Zone": "Collins - Gold Zone",
+        "Green Zone": "Collins - Green Zone",
+        "Resident Zone": "Collins - Resident Zone",
+        "Non-Resident Zone": "Collins - Non-Resident Zone",
+        "Staff Zone": "Beard - Staff Zone",
+        "Student Zone": "Beard - Student Zone",
+        "Visitor Zone": "Beard - Visitor Zone",
+        "Reserved Zone": "Beard - Reserved Zone"
     }
     
     # Add markers for each area
     for area_name, area_data in areas.items():
-        lat, lng = coordinates[area_name]
+        # Map old area names to new USF area names if needed
+        usf_area_name = area_name_mapping.get(area_name, area_name)
+        
+        # Skip if we don't have coordinates for this area
+        if usf_area_name not in coordinates:
+            continue
+            
+        lat, lng = coordinates[usf_area_name]
         
         # Determine color based on occupancy
         occupancy_pct = area_data['occupancy_pct']
@@ -198,13 +283,14 @@ def create_parking_map(occupancy_data, center_lat=37.7749, center_lng=-122.4194)
         else:
             color = 'red'
         
-        # Create popup content
+        # Create popup content with USF branding
         popup_content = f"""
-        <div style="font-family: Arial; width: 200px;">
-            <h4>{area_name}</h4>
+        <div style="font-family: Arial; width: 220px; border-top: 4px solid #006747;">
+            <h4 style="color: #006747;">{usf_area_name}</h4>
             <p><b>Occupancy:</b> {area_data['occupied']}/{area_data['total']} spaces</p>
             <p><b>Available:</b> {area_data['available']} spaces</p>
             <p><b>Occupancy Rate:</b> {area_data['occupancy_pct']:.1f}%</p>
+            <p style="color: #006747; font-size: 11px; text-align: right;">USF Parking System</p>
         </div>
         """
         
@@ -222,18 +308,22 @@ def create_parking_map(occupancy_data, center_lat=37.7749, center_lng=-122.4194)
             color=color,
             fill=True,
             fill_opacity=min(0.2 + (area_data['occupancy_pct'] / 100 * 0.6), 0.8),  # Opacity based on occupancy
-            tooltip=f"{area_name}: {area_data['occupied']}/{area_data['total']} spaces occupied"
+            tooltip=f"{usf_area_name}: {area_data['occupied']}/{area_data['total']} spaces occupied"
         ).add_to(m)
     
-    # Add legend
+    # Add USF branded legend
     legend_html = """
     <div style="position: fixed; 
-        bottom: 50px; left: 50px; width: 150px; height: 120px; 
-        background-color: white; border:2px solid grey; z-index:9999; padding: 10px;
-        font-size: 12px; font-family: Arial;">
+        bottom: 50px; left: 50px; width: 180px; height: 150px; 
+        background-color: white; border:2px solid #006747; z-index:9999; padding: 12px;
+        font-size: 12px; font-family: Arial; border-radius: 5px;">
+        <div style="border-bottom: 2px solid #CFC493; margin-bottom: 8px; padding-bottom: 5px;">
+            <strong style="color: #006747;">USF Parking Status</strong>
+        </div>
         <p><i class="fa fa-circle" style="color:green;"></i> Low Occupancy (<50%)</p>
         <p><i class="fa fa-circle" style="color:orange;"></i> Moderate Occupancy (50-80%)</p>
         <p><i class="fa fa-circle" style="color:red;"></i> High Occupancy (>80%)</p>
+        <p><i class="fa fa-building" style="color:blue;"></i> Parking Garage</p>
     </div>
     """
     
