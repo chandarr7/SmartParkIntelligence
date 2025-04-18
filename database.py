@@ -35,6 +35,7 @@ class ParkingArea(Base):
     name = Column(String, nullable=False)
     total_spaces = Column(Integer, nullable=False)
     lot_id = Column(Integer, ForeignKey('parking_lots.id'), nullable=False)
+    permit_type = Column(String, default="All")  # USF-specific permit type (S, D, R, Gold, etc.)
     
     # Relationship
     lot = relationship("ParkingLot", back_populates="areas")
@@ -55,6 +56,20 @@ class OccupancyRecord(Base):
     # Relationships
     lot = relationship("ParkingLot", back_populates="occupancy_records")
     area = relationship("ParkingArea", back_populates="occupancy_records")
+
+class USFPermit(Base):
+    __tablename__ = 'usf_permits'
+    
+    id = Column(Integer, primary_key=True)
+    permit_type = Column(String, nullable=False)  # S, D, R, Gold, GZ, E, Y, W
+    description = Column(String, nullable=False)  # Description of the permit
+    annual_price = Column(Float, nullable=False)  # Annual price
+    semester_price = Column(Float)  # Semester price (if available)
+    valid_areas = Column(String, nullable=False)  # Areas where permit is valid
+    user_type = Column(String, nullable=False)  # Student, Faculty, Staff, etc.
+    
+    def __repr__(self):
+        return f"<USFPermit(type='{self.permit_type}', for='{self.user_type}')>"
 
 def init_db():
     """Initialize the database by creating all tables."""
@@ -261,7 +276,7 @@ def add_parking_lot(name, total_spaces, latitude=None, longitude=None):
     finally:
         session.close()
 
-def add_parking_area(name, total_spaces, lot_id):
+def add_parking_area(name, total_spaces, lot_id, permit_type="All"):
     """
     Add a new parking area to the database.
     
@@ -269,6 +284,7 @@ def add_parking_area(name, total_spaces, lot_id):
     - name: Name of the parking area
     - total_spaces: Total number of parking spaces
     - lot_id: ID of the parking lot this area belongs to
+    - permit_type: Type of permit required for this area (default: "All")
     
     Returns:
     - The created parking area
@@ -279,7 +295,8 @@ def add_parking_area(name, total_spaces, lot_id):
         area = ParkingArea(
             name=name,
             total_spaces=total_spaces,
-            lot_id=lot_id
+            lot_id=lot_id,
+            permit_type=permit_type
         )
         
         # Add to database
@@ -310,6 +327,9 @@ def get_database_stats():
         # Count occupancy records
         stats['total_records'] = session.query(OccupancyRecord).count()
         
+        # Count USF permits
+        stats['total_permits'] = session.query(USFPermit).count()
+        
         # Get earliest and latest timestamps
         earliest_record = session.query(OccupancyRecord).order_by(OccupancyRecord.timestamp).first()
         latest_record = session.query(OccupancyRecord).order_by(OccupancyRecord.timestamp.desc()).first()
@@ -324,6 +344,164 @@ def get_database_stats():
         stats['total_spaces'] = sum([spaces[0] for spaces in total_spaces])
         
         return stats
+    finally:
+        session.close()
+
+def get_usf_permits():
+    """
+    Get all USF parking permits from the database.
+    
+    Returns:
+    - List of USFPermit objects
+    """
+    session = Session()
+    try:
+        return session.query(USFPermit).all()
+    finally:
+        session.close()
+
+def add_usf_permit(permit_type, description, annual_price, valid_areas, user_type, semester_price=None):
+    """
+    Add a new USF parking permit to the database.
+    
+    Parameters:
+    - permit_type: Permit type code (S, D, R, Gold, etc.)
+    - description: Description of the permit
+    - annual_price: Annual price of the permit
+    - valid_areas: Areas where the permit is valid
+    - user_type: Type of user (Student, Faculty, Staff, etc.)
+    - semester_price: Semester price (optional)
+    
+    Returns:
+    - The created permit
+    """
+    session = Session()
+    try:
+        # Create new permit
+        permit = USFPermit(
+            permit_type=permit_type,
+            description=description,
+            annual_price=annual_price,
+            semester_price=semester_price,
+            valid_areas=valid_areas,
+            user_type=user_type
+        )
+        
+        # Add to database
+        session.add(permit)
+        session.commit()
+        
+        return permit
+    finally:
+        session.close()
+
+def seed_usf_permits():
+    """
+    Seed the database with USF parking permit data.
+    """
+    session = Session()
+    try:
+        # Check if we already have permit data
+        existing_permits = session.query(USFPermit).count()
+        if existing_permits > 0:
+            return
+            
+        # Create USF permits
+        permits = [
+            # Student permits
+            USFPermit(
+                permit_type="S",
+                description="Resident Student Permit",
+                annual_price=226.00,
+                semester_price=113.00,
+                valid_areas="S and D designated lots/garages",
+                user_type="Resident Student"
+            ),
+            USFPermit(
+                permit_type="D",
+                description="Non-Resident Student Permit",
+                annual_price=226.00,
+                semester_price=113.00,
+                valid_areas="D designated lots/garages",
+                user_type="Non-Resident Student"
+            ),
+            USFPermit(
+                permit_type="Y",
+                description="Resident Park-n-Ride Permit",
+                annual_price=65.00,
+                semester_price=None,
+                valid_areas="Lot 43 and Park-n-Ride lots",
+                user_type="Resident Student"
+            ),
+            USFPermit(
+                permit_type="W",
+                description="Park-n-Ride Permit",
+                annual_price=65.00,
+                semester_price=None,
+                valid_areas="Park-n-Ride lots only",
+                user_type="Non-Resident Student"
+            ),
+            
+            # Staff/Faculty permits
+            USFPermit(
+                permit_type="Gold",
+                description="Gold Staff Permit",
+                annual_price=1022.00,
+                semester_price=511.00,
+                valid_areas="Gold zones and all other non-reserved areas",
+                user_type="Faculty/Staff"
+            ),
+            USFPermit(
+                permit_type="GZ",
+                description="Green Staff Permit",
+                annual_price=428.00,
+                semester_price=214.00,
+                valid_areas="Green zones and student areas",
+                user_type="Faculty/Staff"
+            ),
+            USFPermit(
+                permit_type="E",
+                description="Evening Staff Permit",
+                annual_price=219.00,
+                semester_price=109.50,
+                valid_areas="Valid after 5:30 PM in any non-reserved space",
+                user_type="Faculty/Staff"
+            ),
+            USFPermit(
+                permit_type="R",
+                description="Reserved Permit",
+                annual_price=1603.00,
+                semester_price=801.50,
+                valid_areas="Reserved spaces and all non-reserved areas",
+                user_type="Faculty/Staff"
+            ),
+            
+            # Other permits
+            USFPermit(
+                permit_type="DV",
+                description="Daily Visitor Permit",
+                annual_price=5.00,
+                semester_price=None,
+                valid_areas="Visitor areas and student areas",
+                user_type="Visitor"
+            ),
+            USFPermit(
+                permit_type="MC",
+                description="Motorcycle Permit",
+                annual_price=219.00,
+                semester_price=109.50,
+                valid_areas="Motorcycle spaces only",
+                user_type="Any"
+            )
+        ]
+        
+        session.add_all(permits)
+        session.commit()
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Error seeding USF permits: {e}")
+        raise
     finally:
         session.close()
 
@@ -377,26 +555,26 @@ def seed_database():
         # Create parking areas (by permit type)
         areas = [
             # Collins Garage areas
-            ParkingArea(name="Gold Zone", total_spaces=200, lot_id=collins_garage.id),
-            ParkingArea(name="Green Zone", total_spaces=900, lot_id=collins_garage.id),
-            ParkingArea(name="Resident Zone", total_spaces=500, lot_id=collins_garage.id),
-            ParkingArea(name="Non-Resident Zone", total_spaces=200, lot_id=collins_garage.id),
+            ParkingArea(name="Gold Zone", total_spaces=200, lot_id=collins_garage.id, permit_type="Gold"),
+            ParkingArea(name="Green Zone", total_spaces=900, lot_id=collins_garage.id, permit_type="GZ"),
+            ParkingArea(name="Resident Zone", total_spaces=500, lot_id=collins_garage.id, permit_type="S"),
+            ParkingArea(name="Non-Resident Zone", total_spaces=200, lot_id=collins_garage.id, permit_type="D"),
             
             # Beard Garage areas
-            ParkingArea(name="Staff Zone", total_spaces=400, lot_id=beard_garage.id),
-            ParkingArea(name="Student Zone", total_spaces=800, lot_id=beard_garage.id),
-            ParkingArea(name="Visitor Zone", total_spaces=200, lot_id=beard_garage.id),
-            ParkingArea(name="Reserved Zone", total_spaces=100, lot_id=beard_garage.id),
+            ParkingArea(name="Staff Zone", total_spaces=400, lot_id=beard_garage.id, permit_type="GZ"),
+            ParkingArea(name="Student Zone", total_spaces=800, lot_id=beard_garage.id, permit_type="D"),
+            ParkingArea(name="Visitor Zone", total_spaces=200, lot_id=beard_garage.id, permit_type="DV"),
+            ParkingArea(name="Reserved Zone", total_spaces=100, lot_id=beard_garage.id, permit_type="R"),
             
             # Laurel Garage areas
-            ParkingArea(name="Gold Zone", total_spaces=300, lot_id=laurel_garage.id),
-            ParkingArea(name="Green Zone", total_spaces=1000, lot_id=laurel_garage.id),
-            ParkingArea(name="Visitor Zone", total_spaces=400, lot_id=laurel_garage.id),
+            ParkingArea(name="Gold Zone", total_spaces=300, lot_id=laurel_garage.id, permit_type="Gold"),
+            ParkingArea(name="Green Zone", total_spaces=1000, lot_id=laurel_garage.id, permit_type="GZ"),
+            ParkingArea(name="Visitor Zone", total_spaces=400, lot_id=laurel_garage.id, permit_type="DV"),
             
             # Crescent Hill Garage areas
-            ParkingArea(name="Staff Zone", total_spaces=500, lot_id=crescent_garage.id),
-            ParkingArea(name="Student Zone", total_spaces=900, lot_id=crescent_garage.id),
-            ParkingArea(name="Visitor Zone", total_spaces=200, lot_id=crescent_garage.id)
+            ParkingArea(name="Staff Zone", total_spaces=500, lot_id=crescent_garage.id, permit_type="GZ"),
+            ParkingArea(name="Student Zone", total_spaces=900, lot_id=crescent_garage.id, permit_type="S"),
+            ParkingArea(name="Visitor Zone", total_spaces=200, lot_id=crescent_garage.id, permit_type="DV")
         ]
         session.add_all(areas)
         session.commit()
@@ -493,4 +671,5 @@ def seed_database():
 # Initialize and seed the database if this file is run directly
 if __name__ == "__main__":
     init_db()
+    seed_usf_permits()
     seed_database()

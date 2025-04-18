@@ -58,7 +58,7 @@ st.sidebar.markdown("Tampa Campus Parking")
 # Sidebar navigation
 page = st.sidebar.radio(
     "Navigation",
-    ["Dashboard", "Prediction", "Historical Data", "Management", "About"],
+    ["Dashboard", "Prediction", "Historical Data", "Management", "Student Resources", "About"],
 )
 
 # Initialize session state for data persistence
@@ -597,6 +597,219 @@ elif page == "Management":
                 db.seed_database()
                 st.success("Database reinitialized successfully")
                 st.rerun()
+
+# Student Resources Page
+elif page == "Student Resources":
+    st.title("USF Student Parking Resources")
+    
+    # USF Branding
+    st.markdown("""
+    <div style="background-color: #006747; padding: 10px; border-radius: 10px; margin-bottom: 20px;">
+        <h2 style="color: #CFC493; text-align: center;">USF Bull Parking Resources</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create tabs for different resources
+    tabs = st.tabs(["Permit Information", "Campus Map", "Bull Runner", "FAQs"])
+    
+    # Permit Information tab
+    with tabs[0]:
+        st.header("Parking Permit Information")
+        
+        st.subheader("Student Permit Types")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            ### Resident Student Permits
+            
+            **S** - Resident Student Permit
+            - For students living in campus residence halls
+            - Valid in all S and D designated lots/garages
+            - Cost: $226.00 per year or $113.00 per semester
+            
+            **Y** - Resident Park-n-Ride Permit
+            - For resident students in specific halls
+            - Valid in Lot 43 and Park-n-Ride lots
+            - Free Bull Runner shuttle service
+            - Cost: $65.00 per year
+            """)
+        
+        with col2:
+            st.markdown("""
+            ### Non-Resident Student Permits
+            
+            **D** - Non-Resident Student Permit
+            - For commuter students
+            - Valid in D designated lots/garages
+            - Cost: $226.00 per year or $113.00 per semester
+            
+            **W** - Park-n-Ride Permit
+            - Economy option for commuter students
+            - Valid in Park-n-Ride lots only
+            - Free Bull Runner shuttle service
+            - Cost: $65.00 per year
+            """)
+        
+        st.markdown("---")
+        
+        st.subheader("How to Purchase a Permit")
+        st.markdown("""
+        1. Visit [parking.usf.edu](https://parking.usf.edu)
+        2. Log in with your USF NetID
+        3. Select "Purchase Permit"
+        4. Choose your permit type
+        5. Provide vehicle information
+        6. Complete payment information
+        7. Receive confirmation and permit instructions
+        """)
+        
+        # Add a fake permit purchase button for demonstration
+        if st.button("Purchase Permit Online"):
+            st.info("Redirecting to USF Parking Portal... (This is a demonstration)")
+    
+    # Campus Map tab
+    with tabs[1]:
+        st.header("USF Tampa Campus Parking Map")
+        
+        st.markdown("""
+        ### Parking Garages
+        
+        | Garage | Location | Capacity | Permit Types |
+        |--------|----------|----------|--------------|
+        | Collins Garage | Near Collins Blvd | 1,800 | S, D, R, E |
+        | Beard Garage | Near USF Library | 1,500 | S, D, GZ, E |
+        | Laurel Garage | Near College of Medicine | 1,700 | Gold, S, D |
+        | Crescent Hill Garage | Near The Village | 1,600 | S, D, R |
+        """)
+        
+        st.markdown("### Legend")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("🟢 **S** - Student")
+        with col2:
+            st.markdown("🔵 **D** - Daily")
+        with col3:
+            st.markdown("🟠 **R** - Reserved")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("🟣 **E** - Evening")
+        with col2:
+            st.markdown("🟡 **Gold** - Gold")
+        with col3:
+            st.markdown("⚪ **GZ** - Green")
+        
+        # Display campus map with interactive elements
+        st.markdown("### Interactive Campus Map")
+        map_data = create_parking_map(st.session_state.real_time_data)
+        st_folium(map_data, width=700, height=500, returned_objects=[])
+    
+    # Bull Runner tab
+    with tabs[2]:
+        st.header("Bull Runner Shuttle Service")
+        
+        st.image("https://www.usf.edu/administrative-services/parking/documents/bullrunnerroutes.png", 
+                caption="Bull Runner Routes (Example image - not real-time)")
+        
+        st.markdown("""
+        ### Bull Runner Schedule
+        
+        The Bull Runner provides free transportation across campus for USF students, faculty, staff, and visitors.
+        
+        **Operating Hours:**
+        - Monday - Thursday: 7:00 AM - 10:00 PM
+        - Friday: 7:00 AM - 6:00 PM
+        - Saturday - Sunday: Limited service
+        
+        **Routes:**
+        - **A Route**: Collins Garage to Marshall Center
+        - **B Route**: Library to The Village
+        - **C Route**: Engineering to College of Medicine
+        - **D Route**: Park-n-Ride to Campus Core
+        - **E Route**: Off-campus apartments
+        - **F Route**: Shopping and entertainment
+        """)
+        
+        st.markdown("### Track the Bull Runner")
+        st.markdown("Download the USF Mobile app to track Bull Runner shuttles in real-time.")
+        
+        # Add fake tracker button for demonstration
+        if st.button("Launch Bull Runner Tracker"):
+            st.info("Launching Bull Runner Tracker... (This is a demonstration)")
+    
+    # FAQs tab
+    with tabs[3]:
+        st.header("Frequently Asked Questions")
+        
+        # Using expanders for FAQ items
+        with st.expander("What times are parking rules enforced?"):
+            st.markdown("""
+            Parking rules are enforced 24 hours a day, 7 days a week, including weekends and holidays.
+            
+            Some lots have specific enforcement hours:
+            - Reserved spaces: 24/7
+            - Resident spaces: 24/7
+            - Non-resident spaces: 7:00 AM - 5:30 PM, Monday - Friday
+            - Evening permits: Valid after 5:30 PM
+            """)
+        
+        with st.expander("What do I do if I receive a citation?"):
+            st.markdown("""
+            If you receive a parking citation, you have the following options:
+            
+            1. Pay the citation online at [parking.usf.edu](https://parking.usf.edu)
+            2. Appeal the citation within 14 calendar days
+            3. Submit an appeal online with supporting documentation
+            
+            Unpaid citations may result in registration holds or vehicle immobilization.
+            """)
+        
+        with st.expander("Can I get a temporary permit?"):
+            st.markdown("""
+            Yes, temporary permits are available for:
+            
+            - Visitors: Daily permits available for $5.00
+            - Students with temporary needs: Weekly permits available
+            - Medical conditions: Special accommodation permits
+            
+            Visit the Parking & Transportation Services office or call (813) 974-3990 for assistance.
+            """)
+        
+        with st.expander("How does the parking waitlist work?"):
+            st.markdown("""
+            When demand exceeds availability for certain permit types (like Gold or Reserved):
+            
+            1. Join the waitlist through your parking account
+            2. Waitlist position is based on first-come, first-served
+            3. Receive notification when a permit becomes available
+            4. Purchase within 72 hours or forfeit your position
+            
+            You must have a valid permit while on the waitlist.
+            """)
+        
+        with st.expander("What are the most common parking violations?"):
+            st.markdown("""
+            The most common parking violations are:
+            
+            1. Parking without a valid permit ($30)
+            2. Parking in the wrong lot for your permit type ($30)
+            3. Parking in a reserved space ($75)
+            4. Blocking traffic or parking in a fire lane ($75)
+            5. Parking in a handicap space without proper credentials ($275)
+            
+            Repeat violations may result in increased fines.
+            """)
+        
+        # Contact information
+        st.subheader("Contact Parking & Transportation Services")
+        st.markdown("""
+        **Location:** Parking & Transportation Services Building (PSB)
+        **Phone:** (813) 974-3990
+        **Email:** psweb@usf.edu
+        **Hours:** Monday - Friday, 8:00 AM - 5:00 PM
+        """)
 
 # About Page
 elif page == "About":

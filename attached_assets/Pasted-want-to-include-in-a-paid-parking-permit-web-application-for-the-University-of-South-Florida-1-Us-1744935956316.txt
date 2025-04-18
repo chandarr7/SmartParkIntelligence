@@ -1,0 +1,119 @@
+want to include in a paid parking‑permit web application for the University of South Florida:
+
+1. User Authentication & Profile Management
+USF SSO Integration (Shibboleth/CAS) so students, faculty, and staff can log in with their existing credentials
+
+Role-based Access (student, faculty, staff, visitor)
+
+Profile Dashboard showing basic user info, saved vehicles, and past purchases
+
+2. Permit Catalog & Pricing
+Permit Types: semester (fall/spring), academic year, daily, event‑specific, visitor
+
+Tiered Pricing based on role (e.g. discounted student rates, standard faculty/staff rates)
+
+Add‑ons: overflow lot access, garage upgrade, overnight parking
+
+3. Permit Selection & Reservation Workflow
+Vehicle Registration (make, model, license plate)
+
+Zone/Lot Selection: choose preferred parking zone(s)
+
+Date Range Picker: start/end dates (with calendar widget)
+
+Real‑time Availability: show sold‑out vs. open permits per zone
+
+4. Payment Processing
+PCI‑compliant Gateway (Stripe, PayPal, etc.)
+
+Save Payment Methods (credit/debit cards, Apple Pay)
+
+Order Summary & Invoice PDF on completion
+
+5. Permit Issuance & Delivery
+Digital Permit: downloadable PDF with QR code or barcode
+
+Print‑at‑Home Option
+
+Mobile Wallet Pass support (Apple Wallet/Google Pay)
+
+6. Interactive Campus Map
+Map Overlay of all lots & garages
+
+Color‑coded Zones (green, yellow, red)
+
+Search & Filter by proximity or availability
+
+7. User Dashboard & Permit Management
+Active Permit View: status, expiration date, zone
+
+Permit Renewal & Upgrade one‑click workflows
+
+Permit History: past permits, receipts, cancellations
+
+8. Notifications & Communications
+Email/SMS Alerts: purchase confirmation, impending expiration, payment failure
+
+Push Notifications (if you offer a companion mobile app)
+
+In‑app Messaging for policy updates or outage notices
+
+9. Cancellations, Refunds & Waitlists
+Self‑service Cancellation with prorated refunds
+
+Automatic Waitlist for sold‑out zones, notifying users when spaces free up
+
+Refund Processing workflow for admin review
+
+10. Administrative Dashboard
+Zone & Pricing Management: create/edit zones, update rates
+
+User & Permit Oversight: search users, view purchases, revoke permits
+
+Approval Queues for special requests (e.g. disability permits)
+
+11. Reporting & Analytics
+Sales Reports (daily/weekly/monthly revenue by zone/type)
+
+Utilization Metrics (occupancy rates, peak times)
+
+Exportable Data (CSV, Excel) for campus transportation planning
+
+12. Security, Compliance & Privacy
+Data Encryption in transit (HTTPS) and at rest
+
+Role‑based Permissions on admin functions
+
+Audit Logs for purchases, cancellations, admin actions
+
+Privacy Policy & Terms of Service aligned with USF guidelines
+
+13. Performance & Scalability
+Caching Layers for map tiles and availability data
+
+Load Balancing to handle peak‑season traffic (start of term)
+
+CDN for static assets
+
+14. Mobile Responsiveness & Accessibility
+Responsive Design (desktop, tablet, mobile)
+
+WCAG 2.1 AA Compliance for users with disabilities
+
+Support for Screen Readers and keyboard navigation
+
+15. Customer Support & Help Center
+FAQ Section covering common questions (refund policy, lot rules)
+
+Ticketing System or Live Chat integration
+
+Contact Form for special requests
+
+16. Optional & Future Enhancements
+Dynamic Pricing based on real‑time demand
+
+API Access for third‑party integrations (campus apps)
+
+Multi‑language Support (e.g., English & Spanish)
+
+Loyalty/Referral Programs (discounts for returning users)
